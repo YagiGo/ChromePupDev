@@ -48,7 +48,7 @@ const benchmarkRoot = "/Users/mac/ChromePupDev/BenchmarkRoot";
 const {URL} = require("url"); // URL parse
 const fs = require("fs-extra");
 const path = require("path");
-const benchmarkTimes = 100; // Benchmark every web page for 100 times
+const BENCHMARK_TIMES = 100; // Benchmark every web page for 100 times
 
 // async function getPageLoaded() {
 //     const browser = await puppeteer.launch({
@@ -106,14 +106,14 @@ async function getDOMLoadedTime(url, networkEnvironment) {
 };
 
 async function evaluate() {
-    for(let i = 0; i < 3; i++) {
+    for(let i = 0; i < testSite_original.length; i++) {
         console.log("Benchmarking ", testSite_original[i])
         for(let index in NETWORK_PRESETS) {
             let networkName = index;
             let networkPreset = NETWORK_PRESETS[index];
             console.log("Network Status:",networkName);
             // console.log(networkPreset);
-            for(let j = 0; j < 100; j++) {
+            for(let j = 0; j < BENCHMARK_TIMES; j++) {
                 console.log(`Test No.${j+1}`)
                 let originalLoadTime = await getDOMLoadedTime(testSite_original[i], networkPreset);
                 let cachedLoadTime = await getDOMLoadedTime(testSite_cached[i], networkPreset);
