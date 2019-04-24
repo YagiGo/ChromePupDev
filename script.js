@@ -1,18 +1,20 @@
 // Get the page loading speed with chromium
 const puppeteer = require("puppeteer");
 const extPath = "/Users/mac/YPTN-Client-Server-Communication/YPTN-Client"; // YPTN Client Extension to be loaded
+//Update: Browser level network throttling will no longer be used.
+//Set up a network condition simulator to do this.
 const NETWORK_PRESETS = {
     'ExtremelyCrowded': {
         'offline': false,
-        'downloadThroughput': 240 * 1024 / 8,
-        'uploadThroughput': 800 * 1024 / 8,
-        'latency': 200
+        'downloadThroughput': 500 * 1024 / 8,
+        'uploadThroughput': 500 * 1024 / 8,
+        'latency': 350
     },
     'Crowded': {
         'offline': false,
         'downloadThroughput': 2 * 1024 * 1024 / 8,
-        'uploadThroughput': 800 * 1024 / 8,
-        'latency': 100
+        'uploadThroughput': 2 * 1024 / 8,
+        'latency': 150
     },
     'Regular4G': {
         'offline': false,
@@ -22,8 +24,8 @@ const NETWORK_PRESETS = {
     },
     'RegularWifi': {
         'offline': false,
-        'downloadThroughput': 40 * 1024 * 1024 / 8,
-        'uploadThroughput': 30 * 1024 * 1024 / 8,
+        'downloadThroughput': 10 * 1024 * 1024 / 8,
+        'uploadThroughput': 10 * 1024 * 1024 / 8,
         'latency': 20
     },
     'IdealNetwork': {
@@ -34,15 +36,47 @@ const NETWORK_PRESETS = {
     }
 };
 
+// Ideal Up/Down Link Speed, variance on latencies.
+const NETWORK_PRESET_LATENCY = {
+    "LowLatency": {
+        'offline': false,
+        'downloadThroughput': 500 * 1024 * 1024 / 8,
+        'uploadThroughput': 500 * 1024 * 1024 / 8,
+        'latency': 5
+    },
+
+    "ModerateLatency": {
+        'offline': false,
+        'downloadThroughput': 500 * 1024 * 1024 / 8,
+        'uploadThroughput': 500 * 1024 * 1024 / 8,
+        'latency': 100
+    },
+
+    "HighLatency": {
+        'offline': false,
+        'downloadThroughput': 500 * 1024 * 1024 / 8,
+        'uploadThroughput': 500 * 1024 * 1024 / 8,
+        'latency': 500
+    }
+};
+
 const testSite_cached = [
     "https://192.168.1.47:8081/fe82dac84d8b896b3e7cf9edcb4f0eb8",
-    "https://192.168.1.47:8081/e5cc01b67c7457d1a2d12b6337a64458",
+    "https://192.168.1.47:8081/008ec4453ff31513f43893cba7aa31c8",
     "https://192.168.1.47:8081/09d3713efe5fc9cb8bfe1830b44cd5be",
 ];
 const testSite_original = [
     "https://www.yahoo.co.jp",
-    "https://www.github.com/yagigo",
+    "https://github.com",
     "https://www.zhaoxinblog.com"
+];
+
+const testSite_original_1 = [
+    "https://www.zhaoxinblog.com"
+];
+
+const testSite_cached_1 = [
+    "https://192.168.1.47:8081/09d3713efe5fc9cb8bfe1830b44cd5be"
 ];
 const benchmarkRoot = "/Users/mac/ChromePupDev/BenchmarkRoot";
 const {URL} = require("url"); // URL parse
@@ -74,13 +108,13 @@ async function getDOMLoadedTime(url, networkEnvironment) {
         headless: false,
         devtools: true,
         ignoreHTTPSErrors: true,
-        args: [ `--disable-extensions-except=${extPath}`, `--load-extension=${extPath}`]
+        // args: [ `--disable-extensions-except=${extPath}`, `--load-extension=${extPath}`]
     });
     const page = await browser.newPage();
     const client = await page.target().createCDPSession(); // Connect to developer tool
     //Disable cache and set throttling
     await client.send('Network.setCacheDisabled', {cacheDisabled: true}); // Disable cache usage
-    await client.send('Network.emulateNetworkConditions',networkEnvironment);
+    // await client.send('Network.emulateNetworkConditions',networkEnvironment);
     await page.goto(url, {
         waitUntil: 'domcontentloaded',
         timeout: 30000})
@@ -109,10 +143,10 @@ async function evaluate() {
     for(let i = 0; i < testSite_original.length; i++) {
         console.log("Benchmarking ", testSite_original[i]);
         let testSite = new URL(testSite_original[i]);
-        for(let index in NETWORK_PRESETS) {
+        for(let index in NETWORK_PRESET_LATENCY) {
             let networkName = index;
             let testResultName = testSite.hostname + "_" + networkName + ".csv"; // benchmark result csv file
-            let networkPreset = NETWORK_PRESETS[index];
+            let networkPreset = NETWORK_PRESET_LATENCY[index];
             await fs.writeFile(testResultName, "Test Site,Original Load Time,Cached Load Time\n");
             console.log("Network Status:",networkName);
             // console.log(networkPreset);
@@ -127,8 +161,21 @@ async function evaluate() {
     }
 
 }
-
-
-
-
-evaluate();
+async function evaluate_indeNetwork(currentNetworkCondition) {
+    for(let i = 0; i < testSite_original.length; i++) {
+        console.log("Benchmarking ", testSite_original[i]);
+        let testSite = new URL(testSite_original[i]);
+        let testResultName = testSite.hostname + "_" + currentNetworkCondition + ".csv"; // benchmark result csv file
+        await fs.writeFile(testResultName, "Test Site,Original Load Time,Cached Load Time\n");
+        console.log("Network Status:",currentNetworkCondition);
+        // console.log(networkPreset);
+        for(let j = 0; j < BENCHMARK_TIMES; j++) {
+            console.log(`Test No.${j+1}`);
+            let originalLoadTime = await getDOMLoadedTime(testSite_original[i]);
+            let cachedLoadTime = await getDOMLoadedTime(testSite_cached[i]);
+            console.log("Original: ",originalLoadTime, " Cached: ",cachedLoadTime);
+            await fs.appendFile(testResultName, `${testSite_original[i]},${originalLoadTime},${cachedLoadTime}\n`);
+        }
+    }
+}
+evaluate_indeNetwork("IdealNetwork");
