@@ -128,6 +128,7 @@ async function getDOMLoadedTime(url, networkEnvironment) {
             return JSON.stringify(window.performance.timing)
         })
     );
+    console.log("DEBUG:ALL TIME MONITORED:", performanceTime);
     // console.log(performanceTime);
     const pageLoadTime = // (performanceTime["domainLookupEnd"] - performanceTime["domainLookupStart"]) +
         // (performanceTime["connectEnd"] - performanceTime["connectStart"]) +
