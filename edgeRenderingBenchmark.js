@@ -5,8 +5,57 @@ const BENCHMARK_TIMES = 100;
 const testSite_original = [
     "https://www.yahoo.co.jp",
     "https://github.com",
-    "https://www.zhaoxinblog.com"
+    "https://www.zhaoxinblog.com",
     ];
+const alexa_top_100 = [
+    // "https://www.google.com",
+    // "https://www.youtube.com",
+    // "https://www.facebook.com",
+    // "https://www.baidu.com",
+    // "https://www.wikipedia.org",
+    // "https://www.qq.com",
+    // "https://www.tmall.com",
+    // "https://www.taobao.com",
+    // "https://www.yahoo.com",
+    // "https://www.amazon.com",
+    // "https://www.twitter.com",
+    // "https://www.sohu.com",
+    // "https://www.instagram.com",
+    // "https://www.jd.com",
+    // "https://www.reddit.com",
+    // "https://www.live.com",
+    // "https://www.weibo.com",
+    // "https://www.sina.com.cn",
+    // "https://www.vk.com",
+    // "https://www.yandex.ru",
+    // "https://www.360.cn",
+    // "https://www.blogspot.com",
+    // "https://www.netflix.com",
+    // "https://www.linkedin.com",
+    // "https://www.twitch.tv",
+    // "https://www.pornhub.com",
+    // "https://www.csdn.net",
+    // "https://www.yahoo.co.jp",
+    // "https:/www.mail.ru",
+    // "https://www.aliexpress.com",
+    // "https://www.tribunnews.com",
+    // "https://www.microsoftonline.com",
+    "https://www.naver.com",
+    "https://www.microsoft.com",
+    "https://www.alipay.com",
+    "https://www.t.co",
+    "https://www.google.co.in",
+    "https://www.bing.com",
+    "https://www.google.com.hk",
+    "https://www.amazon.co.jp",
+    "https://www.xvideos.com",
+    "https://www.github.com",
+    "https://www.bilibili.com",
+    "https://www.stackoverflow.com",
+    "https://www.gmw.cn",
+    "https://www.imdb.com",
+    "https://www.livejasmin.com"
+];
 
 const {URL} = require("url"); // URL parse
 const fs = require("fs-extra");
@@ -62,6 +111,7 @@ async function getPerformance(url, browser) {
             return JSON.stringify(window.performance.timing);
         })
     );
+    await page.close();
     let result = {
         "BENCHMARKING_URL"    : url,
         "TCP_HANDSHAKE_TIME"  : performance["connectEnd"] - performance["connectStart"],
@@ -94,4 +144,24 @@ async function benchmark() {
     }
 }
 
-benchmark();
+async function benchmark_alex_top50() {
+    const browser = await puppeteer.launch({
+        headless: true, // show the browser
+        devtools: true,
+        ignoreHTTPSErrors: true, // self-signed certificate problem
+    });
+    let outputCSVName = "alexa_top_50.csv";
+    await fs.writeFile(outputCSVName, "Test Site,TCP Handshake Time,HTTP Response Time,DOM Creation Time,CSSOM Creation Time\n"); // write csv header
+    for(let i = 0; i < alexa_top_100.length; i++) {
+        let testSite = new URL(alexa_top_100[i]);
+        console.log("Benchmarking ", alexa_top_100[i]);
+        for(let j = 0; j < BENCHMARK_TIMES; j++ ) {
+            console.log("TEST NO.",j);
+            let benchmarkResult = await getPerformance(alexa_top_100[i], browser);
+            await fs.appendFile(outputCSVName, `${benchmarkResult["BENCHMARKING_URL"]},${benchmarkResult["TCP_HANDSHAKE_TIME"]},${benchmarkResult["HTTP_RESPONSE_TIME"]},${benchmarkResult["DOM_CREATION_TIME"]},${benchmarkResult["CSSOM_CREATION_TIME"]}\n`);
+        }
+    }
+}
+
+// benchmark();
+benchmark_alex_top50();
